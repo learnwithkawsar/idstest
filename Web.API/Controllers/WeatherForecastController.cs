@@ -8,10 +8,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Web.API.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [ApiController]
     [Route("[controller]")]
-    public class WeatherForecastController : ControllerBase
+   
+    public class WeatherForecastController : BaseController
     {
         private static readonly string[] Summaries = new[]
         {
@@ -28,6 +29,7 @@ namespace Web.API.Controllers
         [HttpGet]
         public IEnumerable<WeatherForecast> Get()
         {
+           
             var rng = new Random();
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {

@@ -2,6 +2,7 @@
 using IdentityServer4.Models;
 using IdentityServer4.Services;
 using IdentityService.Models;
+using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,9 +14,11 @@ namespace IdentityService.Data
     public class ProfileService : IProfileService
     {
         MyUserManager _myUserManager;
-        public ProfileService()
+        private readonly UserManager<ApplicationUser> _userManager;
+        public ProfileService(UserManager<ApplicationUser> userManager)
         {
             _myUserManager = new MyUserManager();
+            _userManager = userManager;
         }
 
         public async Task GetProfileDataAsync(ProfileDataRequestContext context)
@@ -23,7 +26,7 @@ namespace IdentityService.Data
             var sub = context.Subject.FindFirst("sub")?.Value;
             if (sub != null)
             {
-                var user = await _myUserManager.FindByNameAsync(sub);
+                var user = await _userManager.FindByNameAsync(sub);
                 var cp = await getClaims(user);
 
                 var claims = cp.Claims.ToList();
@@ -41,7 +44,7 @@ namespace IdentityService.Data
              context.IsActive=true;
         }
 
-        private async Task<ClaimsPrincipal> getClaims(MyUser user)
+        private async Task<ClaimsPrincipal> getClaims(ApplicationUser user)
         {
             if (user == null)
             {
@@ -50,9 +53,17 @@ namespace IdentityService.Data
 
             var id = new ClaimsIdentity();
             id.AddClaim(new Claim(JwtClaimTypes.PreferredUserName, user.UserName));
-            id.AddClaim(new Claim(JwtClaimTypes.Role, user.UserName));
-
-            id.AddClaims(await _myUserManager.GetClaimsAsync(user));
+            id.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
+ 
+            var Roles = await _userManager.GetRolesAsync(user);
+            if (Roles.Count > 0)
+            {
+                foreach (var item in Roles)
+                {
+                    id.AddClaim(new Claim(JwtClaimTypes.Role, item));
+                }
+                
+            }
 
             return new ClaimsPrincipal(id);
         }
